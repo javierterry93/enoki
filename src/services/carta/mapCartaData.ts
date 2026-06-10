@@ -1,5 +1,5 @@
 import { slugify } from './slugify.ts';
-import type { CartaCategory, CartaData, CartaProduct } from './types.ts';
+import type { Category, Data, Product } from './types.ts';
 import type { Snapshot, SnapshotImage } from './snapshot.ts';
 
 function resolveImageUrl(
@@ -17,7 +17,7 @@ function resolveImageUrl(
 function mapProduct(
 	product: Snapshot['products'][number],
 	images: SnapshotImage[],
-): CartaProduct {
+): Product {
 	return {
 		id: product.id,
 		name: product.name,
@@ -29,7 +29,7 @@ function mapProduct(
 	};
 }
 
-export function mapCartaData(snapshot: Snapshot): CartaData {
+export function mapCartaData(snapshot: Snapshot): Data {
 	const categoryById = new Map(
 		snapshot.categories.map((category) => [category.id, category]),
 	);
@@ -42,7 +42,7 @@ export function mapCartaData(snapshot: Snapshot): CartaData {
 		.filter((product) => product.visible !== false)
 		.sort((a, b) => a.order - b.order);
 
-	const productsByCategory = new Map<string, CartaProduct[]>();
+	const productsByCategory = new Map<string, Product[]>();
 
 	for (const product of visibleProducts) {
 		const mapped = mapProduct(product, snapshot.images);
@@ -51,7 +51,7 @@ export function mapCartaData(snapshot: Snapshot): CartaData {
 		productsByCategory.set(product.categoryId, list);
 	}
 
-	const categories: CartaCategory[] = visibleCategories
+	const categories: Category[] = visibleCategories
 		.map((category) => ({
 			id: category.id,
 			name: category.name,

@@ -6,7 +6,7 @@ import {
 	useState,
 } from 'react';
 import { getCarta } from '../services/carta/cartaService.ts';
-import type { CartaData, CartaProduct } from '../services/carta/types.ts';
+import type { Category, Data, Product } from '../services/carta/types.ts';
 
 const priceFormatter = new Intl.NumberFormat('es-ES', {
 	style: 'currency',
@@ -25,7 +25,7 @@ function normalize(value: string): string {
 		.trim();
 }
 
-function productMatchesQuery(product: CartaProduct, query: string): boolean {
+function matchesQuery(product: Product, query: string): boolean {
 	if (!query) return true;
 
 	const haystack = [
@@ -39,119 +39,21 @@ function productMatchesQuery(product: CartaProduct, query: string): boolean {
 	return normalize(haystack).includes(normalize(query));
 }
 
-function categoryTabClass(isActive: boolean) {
-	return [
-		'shrink-0 border-b-2 py-2 text-mobile-body transition',
-		isActive
-			? 'border-foreground font-medium text-foreground'
-			: 'border-transparent text-foreground-muted',
-	]
-		.filter(Boolean)
-		.join(' ');
-}
-
-type ListProduct = CartaProduct & { categoryName: string };
-
-type CartaState =
+type State =
 	| { status: 'loading' }
-	| { status: 'success'; data: CartaData }
+	| { status: 'success'; data: Data }
 	| { status: 'error'; message: string };
 
-function SearchIcon() {
-	return (
-		<svg
-			className="h-5 w-5"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			strokeWidth="1.5"
-			aria-hidden
-		>
-			<circle cx="11" cy="11" r="7" />
-			<path d="M20 20l-3.5-3.5" />
-		</svg>
-	);
-}
-
-function ProductThumbnail({
-	product,
-	className = '',
-}: {
-	product: ListProduct;
-	className?: string;
-}) {
-	if (product.imageUrl) {
-		return (
-			<img
-				src={product.imageUrl}
-				alt=""
-				loading="lazy"
-				decoding="async"
-				className={['h-full w-full object-cover', className].join(' ')}
-			/>
-		);
-	}
-
-	return (
-		<span
-			className={[
-				'flex h-full w-full items-center justify-center bg-surface-muted text-xs text-foreground-subtle',
-				className,
-			].join(' ')}
-		>
-			{product.name.slice(0, 1)}
-		</span>
-	);
-}
-
-function ProductRow({
-	product,
-	onSelect,
-}: {
-	product: ListProduct;
-	onSelect: () => void;
-}) {
-	return (
-		<li className="border-b border-separator">
-			<button
-				type="button"
-				className="flex w-full gap-4 py-5 text-left"
-				onClick={onSelect}
-			>
-				{product.imageUrl ? (
-					<div className="h-16 w-16 shrink-0 overflow-hidden bg-surface-muted">
-						<ProductThumbnail product={product} />
-					</div>
-				) : null}
-				<div className="min-w-0 flex-1">
-					<div className="flex items-baseline justify-between gap-4">
-						<h3 className="text-mobile-title leading-mobile-title text-foreground">
-							{product.name}
-						</h3>
-						<p className="shrink-0 text-mobile-body tabular-nums text-foreground-muted">
-							{formatPrice(product.price)}
-						</p>
-					</div>
-					{product.description ? (
-						<p className="mt-1.5 line-clamp-2 text-mobile-body leading-mobile-body text-foreground-subtle">
-							{product.description}
-						</p>
-					) : null}
-				</div>
-			</button>
-		</li>
-	);
-}
+type Section = {
+	category: Category;
+	products: Product[];
+};
 
 export default function CartaPage() {
 	const searchId = useId();
-	const [cartaState, setCartaState] = useState<CartaState>({ status: 'loading' });
+	const [state, setState] = useState<State>({ status: 'loading' });
 	const [query, setQuery] = useState('');
-	const [searchOpen, setSearchOpen] = useState(false);
-	const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
-	const [selectedProductId, setSelectedProductId] = useState<string | null>(
-		null,
-	);
+	const [activeId, setActiveId] = useState<string | null>(null);
 	const deferredQuery = useDeferredValue(query);
 
 	useEffect(() => {
@@ -159,7 +61,7 @@ export default function CartaPage() {
 
 		getCarta()
 			.then((data) => {
-				if (!cancelled) setCartaState({ status: 'success', data });
+				if (!cancelled) setState({ status: 'success', data });
 			})
 			.catch((error: unknown) => {
 				if (cancelled) return;
@@ -167,7 +69,7 @@ export default function CartaPage() {
 					error instanceof Error
 						? error.message
 						: 'No se pudo cargar la carta';
-				setCartaState({ status: 'error', message });
+				setState({ status: 'error', message });
 			});
 
 		return () => {
@@ -176,24 +78,29 @@ export default function CartaPage() {
 	}, []);
 
 	const businessName =
-		cartaState.status === 'success'
-			? cartaState.data.settings?.name || 'Carta'
+		state.status === 'success'
+			? state.data.settings?.name || 'Carta'
 			: 'Carta';
 
 	const businessPhone =
-		cartaState.status === 'success'
-			? cartaState.data.settings?.phone
+		state.status === 'success'
+			? state.data.settings?.phone
+			: null;
+
+	const businessHours =
+		state.status === 'success'
+			? state.data.settings?.hours
 			: null;
 
 	useEffect(() => {
-		document.title = `${businessName} · Carta`;
+		document.title = businessName;
 	}, [businessName]);
 
 	useEffect(() => {
-		if (!selectedProductId) return;
+		if (!activeId) return;
 
 		const onKeyDown = (event: KeyboardEvent) => {
-			if (event.key === 'Escape') setSelectedProductId(null);
+			if (event.key === 'Escape') setActiveId(null);
 		};
 
 		document.body.style.overflow = 'hidden';
@@ -203,277 +110,189 @@ export default function CartaPage() {
 			document.body.style.overflow = '';
 			window.removeEventListener('keydown', onKeyDown);
 		};
-	}, [selectedProductId]);
+	}, [activeId]);
 
-	const categories =
-		cartaState.status === 'success' ? cartaState.data.categories : [];
+	const sections = useMemo((): Section[] => {
+		if (state.status !== 'success') return [];
 
-	const listProducts = useMemo((): ListProduct[] => {
-		if (cartaState.status !== 'success') return [];
+		return state.data.categories
+			.map((category) => ({
+				category,
+				products: category.products.filter((product) =>
+					matchesQuery(product, deferredQuery),
+				),
+			}))
+			.filter((section) => section.products.length > 0);
+	}, [state, deferredQuery]);
 
-		const source = activeCategoryId
-			? categories.filter((category) => category.id === activeCategoryId)
-			: categories;
-
-		return source.flatMap((category) =>
-			category.products.map((product) => ({
-				...product,
-				categoryName: category.name,
-			})),
-		);
-	}, [cartaState, categories, activeCategoryId]);
-
-	const visibleProducts = useMemo(() => {
-		const filtered = listProducts.filter((product) =>
-			productMatchesQuery(product, deferredQuery),
-		);
-
-		return [...filtered].sort((a, b) => {
-			if (a.featured === b.featured) return 0;
-			return a.featured ? -1 : 1;
-		});
-	}, [listProducts, deferredQuery]);
-
-	const selectedProduct = useMemo(
-		() =>
-			visibleProducts.find((product) => product.id === selectedProductId) ??
-			null,
-		[visibleProducts, selectedProductId],
+	const products = useMemo(
+		() => sections.flatMap((section) => section.products),
+		[sections],
 	);
 
-	const selectedIndex = selectedProduct
-		? visibleProducts.findIndex((product) => product.id === selectedProduct.id)
-		: -1;
-
-	const isSearching = query !== deferredQuery;
-
-	const selectSibling = (direction: -1 | 1) => {
-		if (selectedIndex < 0 || visibleProducts.length === 0) return;
-
-		const nextIndex =
-			(selectedIndex + direction + visibleProducts.length) %
-			visibleProducts.length;
-
-		setSelectedProductId(visibleProducts[nextIndex]?.id ?? null);
-	};
+	const activeProduct =
+		products.find((product) => product.id === activeId) ?? null;
 
 	return (
-		<div className="min-h-screen bg-surface text-foreground">
-			<header className="sticky top-0 z-40 border-b border-separator bg-surface">
-				<div className="container-carta py-5">
-					<div className="flex items-center justify-between gap-4">
-						<div className="min-w-0">
-							<h1 className="truncate text-xl font-medium tracking-tight text-foreground">
-								{businessName}
-							</h1>
-							{cartaState.status === 'success' &&
-							cartaState.data.settings?.hours ? (
-								<p className="mt-0.5 truncate text-mobile-body text-foreground-subtle">
-									{cartaState.data.settings.hours}
-								</p>
-							) : null}
-						</div>
-
-						<button
-							type="button"
-							className="shrink-0 text-foreground-muted"
-							aria-label={searchOpen ? 'Cerrar búsqueda' : 'Buscar'}
-							aria-expanded={searchOpen}
-							onClick={() => setSearchOpen((open) => !open)}
-						>
-							<SearchIcon />
-						</button>
-					</div>
-
-					{searchOpen ? (
-						<div className="mt-4">
-							<label htmlFor={searchId} className="sr-only">
-								Buscar en la carta
-							</label>
-							<input
-								id={searchId}
-								type="search"
-								value={query}
-								onChange={(event) => setQuery(event.target.value)}
-								placeholder="Buscar…"
-								autoComplete="off"
-								spellCheck={false}
-								autoFocus
-								className="w-full border-0 border-b border-separator bg-transparent py-2 text-mobile-body text-foreground outline-none placeholder:text-foreground-subtle focus:border-foreground"
-							/>
-							{isSearching ? (
-								<p className="mt-2 text-xs text-foreground-subtle">
-									Buscando…
-								</p>
-							) : null}
-						</div>
-					) : null}
-
-					{cartaState.status === 'success' ? (
-						<nav
-							className="mt-4 -mx-4 overflow-x-auto px-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-							aria-label="Categorías"
-						>
-							<ul className="flex gap-6">
-								<li>
-									<button
-										type="button"
-										className={categoryTabClass(activeCategoryId === null)}
-										onClick={() => setActiveCategoryId(null)}
-									>
-										Todo
-									</button>
-								</li>
-								{categories.map((category) => (
-									<li key={category.id}>
-										<button
-											type="button"
-											className={categoryTabClass(
-												activeCategoryId === category.id,
-											)}
-											onClick={() => setActiveCategoryId(category.id)}
-										>
-											{category.name}
-										</button>
-									</li>
-								))}
-							</ul>
-						</nav>
-					) : null}
-				</div>
+		<div className="container-carta min-h-screen bg-surface text-foreground">
+			<header className="py-10 text-center">
+				<h1 className="text-mobile-heading leading-mobile-heading font-medium text-foreground">
+					{businessName}
+				</h1>
+				{businessHours ? (
+					<p className="mt-2 text-mobile-caption leading-mobile-caption text-foreground-muted">
+						{businessHours}
+					</p>
+				) : null}
 			</header>
 
-			<main className="container-carta">
-				{cartaState.status === 'loading' ? (
-					<ul aria-busy="true" aria-label="Cargando carta">
-						{Array.from({ length: 6 }, (_, index) => (
-							<li key={index} className="border-b border-separator py-5">
-								<div className="h-4 w-2/3 animate-pulse bg-surface-muted" />
-								<div className="mt-2 h-3 w-1/3 animate-pulse bg-surface-muted" />
-							</li>
-						))}
-					</ul>
-				) : null}
+			<div className="pb-6">
+				<label htmlFor={searchId} className="sr-only">
+					Buscar
+				</label>
+				<input
+					id={searchId}
+					type="search"
+					value={query}
+					onChange={(event) => setQuery(event.target.value)}
+					placeholder="Buscar"
+					autoComplete="off"
+					spellCheck={false}
+					className="w-full border-0 border-b border-separator bg-transparent py-2 text-center text-mobile-body text-foreground outline-none placeholder:text-foreground-subtle focus:border-foreground"
+				/>
+			</div>
 
-				{cartaState.status === 'error' ? (
-					<div role="alert" className="py-20 text-center">
-						<p className="text-foreground">No se pudo cargar la carta</p>
-						<p className="mt-2 text-sm text-foreground-muted">
-							{cartaState.message}
-						</p>
+			<main className="pb-16">
+				{state.status === 'loading' ? (
+					<div className="space-y-8 py-4" aria-busy="true" aria-label="Cargando">
+						{Array.from({ length: 4 }, (_, index) => (
+							<div
+								key={index}
+								className={[
+									'mx-auto h-3 animate-pulse bg-surface-muted',
+									index % 2 === 0 ? 'w-3/5' : 'w-2/3',
+								].join(' ')}
+							/>
+						))}
 					</div>
 				) : null}
 
-				{cartaState.status === 'success' ? (
-					visibleProducts.length > 0 ? (
-						<ul>
-							{visibleProducts.map((product) => (
-								<ProductRow
-									key={product.id}
-									product={product}
-									onSelect={() => setSelectedProductId(product.id)}
-								/>
-							))}
-						</ul>
+				{state.status === 'error' ? (
+					<p
+						role="alert"
+						className="py-16 text-center text-mobile-caption leading-mobile-caption text-foreground-muted"
+					>
+						{state.message}
+					</p>
+				) : null}
+
+				{state.status === 'success' ? (
+					sections.length > 0 ? (
+						sections.map((section) => (
+							<section key={section.category.id} className="mb-12 last:mb-0">
+								<h2 className="mb-5 text-center text-mobile-caption leading-mobile-caption text-foreground-muted">
+									{section.category.name}
+								</h2>
+								<ul className="space-y-6">
+									{section.products.map((product) => (
+										<li key={product.id}>
+											<button
+												type="button"
+												className="w-full text-left"
+												onClick={() => setActiveId(product.id)}
+											>
+												<div className="flex items-baseline justify-between gap-4">
+													<span className="text-mobile-title leading-mobile-title text-foreground">
+														{product.name}
+													</span>
+													<span className="shrink-0 text-mobile-body tabular-nums text-foreground-muted">
+														{formatPrice(product.price)}
+													</span>
+												</div>
+												{product.description ? (
+													<p className="mt-1 text-mobile-body leading-mobile-body text-foreground-subtle">
+														{product.description}
+													</p>
+												) : null}
+											</button>
+										</li>
+									))}
+								</ul>
+							</section>
+						))
 					) : (
-						<p className="py-20 text-center text-sm text-foreground-muted">
-							{query.trim() ? 'Sin resultados.' : 'No hay productos.'}
+						<p className="py-16 text-center text-mobile-caption leading-mobile-caption text-foreground-muted">
+							{query.trim() ? 'Sin resultados.' : 'Sin productos.'}
 						</p>
 					)
 				) : null}
 			</main>
 
-			{selectedProduct ? (
+			{businessPhone ? (
+				<footer className="border-t border-separator py-8 text-center">
+					<a
+						href={`tel:${businessPhone.replace(/\s/g, '')}`}
+						className="text-mobile-caption leading-mobile-caption text-foreground-muted"
+					>
+						{businessPhone}
+					</a>
+				</footer>
+			) : null}
+
+			{activeProduct ? (
 				<div
-					className="fixed inset-0 z-50 flex items-end bg-shadow/40"
+					className="fixed inset-0 z-50 flex justify-center bg-surface-muted"
 					role="dialog"
 					aria-modal="true"
-					aria-labelledby="producto-titulo"
+					aria-labelledby="detalle-nombre"
 				>
-					<button
-						type="button"
-						className="absolute inset-0"
-						aria-label="Cerrar"
-						onClick={() => setSelectedProductId(null)}
-					/>
+					<div className="container-carta flex h-full flex-col bg-surface">
+						<div className="flex justify-end py-5">
+							<button
+								type="button"
+								className="text-mobile-caption leading-mobile-caption text-foreground-muted"
+								onClick={() => setActiveId(null)}
+							>
+								Cerrar
+							</button>
+						</div>
 
-					<article className="carta-fade-in relative z-10 max-h-[90dvh] w-full overflow-y-auto bg-surface">
-						{selectedProduct.imageUrl ? (
-							<div className="aspect-square w-full bg-surface-muted">
-								<img
-									src={selectedProduct.imageUrl}
-									alt={selectedProduct.name}
-									className="h-full w-full object-cover"
-								/>
-							</div>
-						) : null}
+						<div className="flex-1 overflow-y-auto pb-safe">
+							{activeProduct.imageUrl ? (
+								<div className="mb-8 aspect-4/3 bg-surface-muted">
+									<img
+										src={activeProduct.imageUrl}
+										alt={activeProduct.name}
+										className="h-full w-full object-cover"
+									/>
+								</div>
+							) : null}
 
-						<div className="space-y-4 p-5 pb-safe">
-							<div className="flex items-start justify-between gap-4">
+							<div className="flex items-baseline justify-between gap-4">
 								<h2
-									id="producto-titulo"
-									className="text-xl font-medium tracking-tight text-foreground"
+									id="detalle-nombre"
+									className="text-mobile-title leading-mobile-title text-foreground"
 								>
-									{selectedProduct.name}
+									{activeProduct.name}
 								</h2>
 								<p className="shrink-0 text-mobile-body tabular-nums text-foreground-muted">
-									{formatPrice(selectedProduct.price)}
+									{formatPrice(activeProduct.price)}
 								</p>
 							</div>
 
-							{selectedProduct.description ? (
-								<p className="text-mobile-body leading-mobile-body text-foreground-subtle">
-									{selectedProduct.description}
+							{activeProduct.description ? (
+								<p className="mt-4 text-mobile-body leading-mobile-body text-foreground-subtle">
+									{activeProduct.description}
 								</p>
 							) : null}
 
-							{selectedProduct.tags.length > 0 ? (
-								<p className="text-xs text-foreground-muted">
-									{selectedProduct.tags.map((tag) => tag.name).join(' · ')}
+							{activeProduct.tags.length > 0 ? (
+								<p className="mt-6 text-mobile-caption leading-mobile-caption text-foreground-muted">
+									{activeProduct.tags.map((tag) => tag.name).join(' · ')}
 								</p>
-							) : null}
-
-							<div className="flex items-center justify-between pt-2">
-								{visibleProducts.length > 1 ? (
-									<div className="flex gap-4 text-sm text-foreground-muted">
-										<button
-											type="button"
-											aria-label="Anterior"
-											onClick={() => selectSibling(-1)}
-										>
-											Anterior
-										</button>
-										<button
-											type="button"
-											aria-label="Siguiente"
-											onClick={() => selectSibling(1)}
-										>
-											Siguiente
-										</button>
-									</div>
-								) : (
-									<span />
-								)}
-
-								<button
-									type="button"
-									className="text-sm text-foreground-muted"
-									onClick={() => setSelectedProductId(null)}
-								>
-									Cerrar
-								</button>
-							</div>
-
-							{businessPhone ? (
-								<a
-									href={`tel:${businessPhone.replace(/\s/g, '')}`}
-									className="block border-t border-separator pt-4 text-center text-sm text-foreground"
-								>
-									{businessPhone}
-								</a>
 							) : null}
 						</div>
-					</article>
+					</div>
 				</div>
 			) : null}
 		</div>

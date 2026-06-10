@@ -1,35 +1,35 @@
-export type CartaTag = {
+export type Tag = {
 	id: string;
 	name: string;
 	slug: string;
 };
 
-export type CartaProduct = {
+export type Product = {
 	id: string;
 	name: string;
 	description: string | null;
 	price: number;
 	imageUrl: string | null;
 	featured: boolean;
-	tags: CartaTag[];
+	tags: Tag[];
 };
 
-export type CartaCategory = {
+export type Category = {
 	id: string;
 	name: string;
 	slug: string;
 	description: string | null;
-	products: CartaProduct[];
+	products: Product[];
 };
 
-export type BusinessSettings = {
+export type Settings = {
 	name: string;
 	phone: string;
 	address: string;
 	hours: string;
 };
 
-export type CartaData = {
-	categories: CartaCategory[];
-	settings?: BusinessSettings;
+export type Data = {
+	categories: Category[];
+	settings?: Settings;
 };

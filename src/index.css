@@ -41,14 +41,48 @@
 		'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
 		'Segoe UI', sans-serif;
 
-	--text-mobile-body: 1.0625rem;
-	--text-mobile-body--line-height: 1.55;
-	--text-mobile-title: 1.125rem;
-	--text-mobile-title--line-height: 1.35;
-	--leading-mobile-body: 1.55;
-	--leading-mobile-title: 1.35;
-
 	--spacing-safe-bottom: env(safe-area-inset-bottom, 0px);
+	--container-max-carta: 23.4375rem;
+
+	--carta-width: min(100vw, var(--container-max-carta));
+
+	--text-mobile-caption-min: 0.625rem;
+	--text-mobile-caption-max: 0.75rem;
+	--text-mobile-body-min: 0.6875rem;
+	--text-mobile-body-max: 0.8125rem;
+	--text-mobile-title-min: 0.8125rem;
+	--text-mobile-title-max: 0.9375rem;
+	--text-mobile-heading-min: 0.9375rem;
+	--text-mobile-heading-max: 1.125rem;
+
+	--text-mobile-caption: clamp(
+		var(--text-mobile-caption-min),
+		calc(var(--carta-width) / 32),
+		var(--text-mobile-caption-max)
+	);
+	--text-mobile-caption--line-height: calc(var(--text-mobile-caption) * 1.45);
+	--text-mobile-body: clamp(
+		var(--text-mobile-body-min),
+		calc(var(--carta-width) / 28),
+		var(--text-mobile-body-max)
+	);
+	--text-mobile-body--line-height: calc(var(--text-mobile-body) * 1.5);
+	--text-mobile-title: clamp(
+		var(--text-mobile-title-min),
+		calc(var(--carta-width) / 24),
+		var(--text-mobile-title-max)
+	);
+	--text-mobile-title--line-height: calc(var(--text-mobile-title) * 1.35);
+	--text-mobile-heading: clamp(
+		var(--text-mobile-heading-min),
+		calc(var(--carta-width) / 20),
+		var(--text-mobile-heading-max)
+	);
+	--text-mobile-heading--line-height: calc(var(--text-mobile-heading) * 1.25);
+	--leading-mobile-caption: calc(var(--text-mobile-caption) * 1.45);
+	--leading-mobile-body: calc(var(--text-mobile-body) * 1.5);
+	--leading-mobile-title: calc(var(--text-mobile-title) * 1.35);
+	--leading-mobile-heading: calc(var(--text-mobile-heading) * 1.25);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -67,25 +101,13 @@
 
 @utility container-carta {
 	width: 100%;
+	max-width: var(--container-max-carta);
+	margin-inline: auto;
 	padding-inline: --spacing(4);
 }
 
 @utility pb-safe {
 	padding-bottom: var(--spacing-safe-bottom);
-}
-
-@utility carta-fade-in {
-	animation: carta-fade-in 0.2s ease-out both;
-}
-
-@keyframes carta-fade-in {
-	from {
-		opacity: 0;
-	}
-
-	to {
-		opacity: 1;
-	}
 }
 
 @layer base {
@@ -100,7 +122,7 @@
 	}
 
 	body {
-		@apply bg-surface font-sans text-foreground antialiased;
+		@apply bg-surface-muted font-sans text-mobile-body leading-mobile-body text-foreground antialiased;
 		font-feature-settings:
 			'liga' 1,
 			'calt' 1;
