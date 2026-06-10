@@ -8,7 +8,7 @@ import {
 	type SnapshotDataRow,
 	type SupabaseDatabase,
 } from './types.ts';
-import { resolveSupabaseClientConfig } from './client.ts';
+import { getSupabaseUrl } from './client.ts';
 
 function collectImageIds(rows: SnapshotDataRow[]): string[] {
 	const ids = new Set<string>();
@@ -37,8 +37,7 @@ export async function fetchSnapshotFromSupabase(
 		}
 
 		const snapshotRows = (rows ?? []) as SnapshotDataRow[];
-		const { url: supabaseUrl } = resolveSupabaseClientConfig();
-		const images = resolveSnapshotImages(collectImageIds(snapshotRows), supabaseUrl);
+		const images = resolveSnapshotImages(collectImageIds(snapshotRows), getSupabaseUrl());
 
 		return mapSnapshotDataRows(snapshotRows, images);
 	} catch (error) {

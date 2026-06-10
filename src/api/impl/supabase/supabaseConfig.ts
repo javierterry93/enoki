@@ -6,6 +6,15 @@ export type SupabaseClientConfig = {
 	apiKey: string;
 };
 
+/** Cliente de solo lectura: sin sesión ni refresh en localStorage. */
+const READ_ONLY_CLIENT_OPTIONS = {
+	auth: {
+		autoRefreshToken: false,
+		persistSession: false,
+		detectSessionInUrl: false,
+	},
+} as const;
+
 function readEnvRecord(env: Record<string, string>, key: string): string {
 	return env[key]?.trim() ?? '';
 }
@@ -21,9 +30,7 @@ export function isLocalSupabaseUrl(url: string): boolean {
 
 function resolveApiKey(url: string, anonKey: string, publishableKey: string): string {
 	if (isLocalSupabaseUrl(url)) {
-		if (anonKey) return anonKey;
-		if (publishableKey) return publishableKey;
-		return '';
+		return anonKey || publishableKey;
 	}
 
 	return publishableKey || anonKey;
@@ -53,8 +60,11 @@ export function createSupabaseClient(
 	config: SupabaseClientConfig,
 ): SupabaseClient<SupabaseDatabase> {
 	if (!config.url || !config.apiKey) {
+		const local = isLocalSupabaseUrl(config.url);
 		throw new Error(
-			'VITE_SUPABASE_URL y VITE_SUPABASE_PUBLISHABLE_KEY (o VITE_SUPABASE_ANON_KEY en Docker) son obligatorios',
+			local
+				? 'VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY (o VITE_SUPABASE_PUBLISHABLE_KEY) son obligatorios (Supabase local)'
+				: 'VITE_SUPABASE_URL y VITE_SUPABASE_PUBLISHABLE_KEY (o VITE_SUPABASE_ANON_KEY) son obligatorios',
 		);
 	}
 
@@ -63,7 +73,11 @@ export function createSupabaseClient(
 		return cachedClient;
 	}
 
-	cachedClient = createClient<SupabaseDatabase>(config.url, config.apiKey);
+	cachedClient = createClient<SupabaseDatabase>(
+		config.url,
+		config.apiKey,
+		READ_ONLY_CLIENT_OPTIONS,
+	);
 	cachedConfigKey = configKey;
 	return cachedClient;
 }
