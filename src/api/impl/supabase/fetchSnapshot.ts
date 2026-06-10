@@ -8,7 +8,7 @@ import {
 	type SnapshotDataRow,
 	type SupabaseDatabase,
 } from './types.ts';
-import { getSupabaseUrl } from './client.ts';
+import { getSupabaseUrl } from './supabaseConfig.ts';
 
 function collectImageIds(rows: SnapshotDataRow[]): string[] {
 	const ids = new Set<string>();
