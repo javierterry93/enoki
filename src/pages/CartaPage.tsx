@@ -39,10 +39,12 @@ function productMatchesQuery(product: CartaProduct, query: string): boolean {
 	return normalize(haystack).includes(normalize(query));
 }
 
-function navClassName(isActive: boolean) {
+function categoryTabClass(isActive: boolean) {
 	return [
-		'font-display shrink-0 text-xs font-semibold uppercase tracking-label transition',
-		isActive ? 'text-accent-rose' : 'text-foreground-muted hover:text-foreground',
+		'shrink-0 border-b-2 py-2 text-mobile-body transition',
+		isActive
+			? 'border-foreground font-medium text-foreground'
+			: 'border-transparent text-foreground-muted',
 	]
 		.filter(Boolean)
 		.join(' ');
@@ -54,6 +56,134 @@ type CartaState =
 	| { status: 'loading' }
 	| { status: 'success'; data: CartaData }
 	| { status: 'error'; message: string };
+
+function SearchIcon() {
+	return (
+		<svg
+			className="h-5 w-5"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="1.5"
+			aria-hidden
+		>
+			<circle cx="11" cy="11" r="7" />
+			<path d="M20 20l-3.5-3.5" />
+		</svg>
+	);
+}
+
+function ProductThumbnail({
+	product,
+	className = '',
+}: {
+	product: GridProduct;
+	className?: string;
+}) {
+	if (product.imageUrl) {
+		return (
+			<img
+				src={product.imageUrl}
+				alt=""
+				loading="lazy"
+				decoding="async"
+				className={['h-full w-full object-cover', className].join(' ')}
+			/>
+		);
+	}
+
+	return (
+		<span
+			className={[
+				'flex h-full w-full items-center justify-center bg-surface-muted text-xs text-foreground-subtle',
+				className,
+			].join(' ')}
+		>
+			{product.name.slice(0, 1)}
+		</span>
+	);
+}
+
+function MobileProductRow({
+	product,
+	onSelect,
+}: {
+	product: GridProduct;
+	onSelect: () => void;
+}) {
+	return (
+		<li className="border-b border-separator">
+			<button
+				type="button"
+				className="flex w-full gap-4 py-5 text-left"
+				onClick={onSelect}
+			>
+				{product.imageUrl ? (
+					<div className="h-16 w-16 shrink-0 overflow-hidden bg-surface-muted">
+						<ProductThumbnail product={product} />
+					</div>
+				) : null}
+				<div className="min-w-0 flex-1">
+					<div className="flex items-baseline justify-between gap-4">
+						<h3 className="text-mobile-title leading-mobile-title text-foreground">
+							{product.name}
+						</h3>
+						<p className="shrink-0 text-mobile-body tabular-nums text-foreground-muted">
+							{formatPrice(product.price)}
+						</p>
+					</div>
+					{product.description ? (
+						<p className="mt-1.5 line-clamp-2 text-mobile-body leading-mobile-body text-foreground-subtle">
+							{product.description}
+						</p>
+					) : null}
+				</div>
+			</button>
+		</li>
+	);
+}
+
+function DesktopProductCell({
+	product,
+	onSelect,
+}: {
+	product: GridProduct;
+	onSelect: () => void;
+}) {
+	return (
+		<li
+			className={[
+				'bg-surface',
+				product.featured
+					? 'col-span-2 row-span-2 aspect-square'
+					: 'aspect-square',
+			].join(' ')}
+		>
+			<button
+				type="button"
+				className="group relative block h-full w-full overflow-hidden"
+				onClick={onSelect}
+			>
+				<ProductThumbnail product={product} />
+
+				<span
+					className={[
+						'absolute inset-0 flex items-end bg-linear-to-t from-shadow/70 to-transparent p-3 transition',
+						product.featured
+							? 'opacity-100'
+							: 'opacity-0 group-hover:opacity-100',
+					].join(' ')}
+				>
+					<span className="w-full truncate text-left text-xs text-foreground-on-inverse">
+						{product.featured
+							? `${product.name} · ${formatPrice(product.price)}`
+							: formatPrice(product.price)}
+					</span>
+				</span>
+			</button>
+		</li>
+	);
+}
 
 export default function CartaPage() {
 	const searchId = useId();
@@ -171,16 +301,16 @@ export default function CartaPage() {
 
 	return (
 		<div className="min-h-screen bg-surface text-foreground">
-			<header className="sticky top-0 z-40 bg-surface/95 backdrop-blur-xl">
-				<div className="container-carta py-4">
+			<header className="sticky top-0 z-40 border-b border-separator bg-surface">
+				<div className="container-carta py-5">
 					<div className="flex items-center justify-between gap-4">
-						<div className="min-w-0 flex-1">
-							<h1 className="truncate text-sm font-bold uppercase tracking-label text-foreground sm:text-base">
+						<div className="min-w-0">
+							<h1 className="truncate text-xl font-medium tracking-tight text-foreground">
 								{businessName}
 							</h1>
 							{cartaState.status === 'success' &&
 							cartaState.data.settings?.hours ? (
-								<p className="mt-1 truncate text-xs text-foreground-subtle">
+								<p className="mt-0.5 truncate text-mobile-body text-foreground-subtle">
 									{cartaState.data.settings.hours}
 								</p>
 							) : null}
@@ -188,22 +318,12 @@ export default function CartaPage() {
 
 						<button
 							type="button"
-							className="flex h-9 w-9 shrink-0 items-center justify-center text-foreground transition hover:text-accent-rose active:scale-press"
+							className="shrink-0 text-foreground-muted transition hover:text-foreground"
 							aria-label={searchOpen ? 'Cerrar búsqueda' : 'Buscar'}
 							aria-expanded={searchOpen}
 							onClick={() => setSearchOpen((open) => !open)}
 						>
-							<svg
-								className="h-5 w-5"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="1.75"
-								aria-hidden
-							>
-								<circle cx="11" cy="11" r="7" />
-								<path d="M20 20l-3.5-3.5" />
-							</svg>
+							<SearchIcon />
 						</button>
 					</div>
 
@@ -217,10 +337,11 @@ export default function CartaPage() {
 								type="search"
 								value={query}
 								onChange={(event) => setQuery(event.target.value)}
-								placeholder="Buscar platos…"
+								placeholder="Buscar…"
 								autoComplete="off"
 								spellCheck={false}
-								className="w-full border-0 border-b border-separator bg-transparent py-2 text-sm text-foreground outline-none transition placeholder:text-foreground-subtle focus:border-accent-rose"
+								autoFocus
+								className="w-full border-0 border-b border-separator bg-transparent py-2 text-mobile-body text-foreground outline-none placeholder:text-foreground-subtle focus:border-foreground"
 							/>
 							{isSearching ? (
 								<p className="mt-2 text-xs text-foreground-subtle">
@@ -232,14 +353,14 @@ export default function CartaPage() {
 
 					{cartaState.status === 'success' ? (
 						<nav
-							className="mt-4 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+							className="mt-4 -mx-4 overflow-x-auto px-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
 							aria-label="Categorías"
 						>
-							<ul className="flex gap-5">
+							<ul className="flex gap-6">
 								<li>
 									<button
 										type="button"
-										className={navClassName(activeCategoryId === null)}
+										className={categoryTabClass(activeCategoryId === null)}
 										onClick={() => setActiveCategoryId(null)}
 									>
 										Todo
@@ -249,7 +370,7 @@ export default function CartaPage() {
 									<li key={category.id}>
 										<button
 											type="button"
-											className={navClassName(
+											className={categoryTabClass(
 												activeCategoryId === category.id,
 											)}
 											onClick={() => setActiveCategoryId(category.id)}
@@ -264,25 +385,39 @@ export default function CartaPage() {
 				</div>
 			</header>
 
-			<main>
+			<main className="container-carta md:max-w-none md:px-0">
 				{cartaState.status === 'loading' ? (
-					<ul
-						className="grid grid-cols-3 gap-px bg-separator"
-						aria-busy="true"
-						aria-label="Cargando carta"
-					>
-						{Array.from({ length: 9 }, (_, index) => (
-							<li
-								key={index}
-								className="aspect-square animate-pulse bg-surface-muted"
-							/>
-						))}
-					</ul>
+					<>
+						<ul
+							className="md:hidden"
+							aria-busy="true"
+							aria-label="Cargando carta"
+						>
+							{Array.from({ length: 6 }, (_, index) => (
+								<li key={index} className="border-b border-separator py-5">
+									<div className="h-4 w-2/3 animate-pulse bg-surface-muted" />
+									<div className="mt-2 h-3 w-1/3 animate-pulse bg-surface-muted" />
+								</li>
+							))}
+						</ul>
+						<ul
+							className="hidden grid-cols-4 gap-px bg-separator md:grid lg:grid-cols-5 xl:grid-cols-6"
+							aria-busy="true"
+							aria-hidden
+						>
+							{Array.from({ length: 9 }, (_, index) => (
+								<li
+									key={index}
+									className="aspect-square animate-pulse bg-surface-muted"
+								/>
+							))}
+						</ul>
+					</>
 				) : null}
 
 				{cartaState.status === 'error' ? (
-					<div role="alert" className="container-carta py-20 text-center">
-						<p className="text-lg text-foreground">No se pudo cargar la carta</p>
+					<div role="alert" className="py-20 text-center">
+						<p className="text-foreground">No se pudo cargar la carta</p>
 						<p className="mt-2 text-sm text-foreground-muted">
 							{cartaState.message}
 						</p>
@@ -291,65 +426,30 @@ export default function CartaPage() {
 
 				{cartaState.status === 'success' ? (
 					visibleProducts.length > 0 ? (
-						<ul className="grid grid-flow-dense grid-cols-3 gap-px bg-separator sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-							{visibleProducts.map((product) => (
-								<li
-									key={product.id}
-									className={[
-										'bg-surface',
-										product.featured
-											? 'col-span-2 row-span-2 aspect-square'
-											: 'aspect-square',
-									].join(' ')}
-								>
-									<button
-										type="button"
-										className="group relative block h-full w-full overflow-hidden active:opacity-90"
-										onClick={() => setSelectedProductId(product.id)}
-									>
-										{product.imageUrl ? (
-											<img
-												src={product.imageUrl}
-												alt=""
-												loading="lazy"
-												decoding="async"
-												className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-											/>
-										) : (
-											<span className="flex h-full w-full items-center justify-center bg-surface-muted text-lg font-semibold uppercase text-foreground-subtle">
-												{product.name.slice(0, 2)}
-											</span>
-										)}
+						<>
+							<ul className="md:hidden">
+								{visibleProducts.map((product) => (
+									<MobileProductRow
+										key={product.id}
+										product={product}
+										onSelect={() => setSelectedProductId(product.id)}
+									/>
+								))}
+							</ul>
 
-										{product.featured ? (
-											<span className="font-display absolute left-2 top-2 rounded-full bg-accent-rose px-2 py-0.5 text-xs font-bold uppercase tracking-label text-on-accent-rose">
-												VIP
-											</span>
-										) : null}
-
-										<span
-											className={[
-												'absolute inset-0 flex items-end bg-gradient-to-t from-shadow/80 via-transparent to-transparent p-2 transition',
-												product.featured
-													? 'opacity-100'
-													: 'opacity-0 group-hover:opacity-100',
-											].join(' ')}
-										>
-											<span className="font-display w-full truncate text-left text-xs font-semibold uppercase tracking-label text-accent-rose">
-												{product.featured
-													? `${product.name} · ${formatPrice(product.price)}`
-													: formatPrice(product.price)}
-											</span>
-										</span>
-									</button>
-								</li>
-							))}
-						</ul>
+							<ul className="hidden grid-flow-dense bg-separator md:grid md:grid-cols-4 md:gap-px lg:grid-cols-5 xl:grid-cols-6">
+								{visibleProducts.map((product) => (
+									<DesktopProductCell
+										key={product.id}
+										product={product}
+										onSelect={() => setSelectedProductId(product.id)}
+									/>
+								))}
+							</ul>
+						</>
 					) : (
-						<p className="container-carta py-20 text-center text-sm text-foreground-muted">
-							{query.trim()
-								? 'Sin resultados.'
-								: 'No hay productos en la carta.'}
+						<p className="py-20 text-center text-sm text-foreground-muted">
+							{query.trim() ? 'Sin resultados.' : 'No hay productos.'}
 						</p>
 					)
 				) : null}
@@ -357,7 +457,7 @@ export default function CartaPage() {
 
 			{selectedProduct ? (
 				<div
-					className="fixed inset-0 z-50 flex items-end bg-shadow/70 backdrop-blur-overlay sm:items-center sm:justify-center sm:p-6"
+					className="fixed inset-0 z-50 flex items-end bg-shadow/40 md:items-center md:justify-center"
 					role="dialog"
 					aria-modal="true"
 					aria-labelledby="producto-titulo"
@@ -369,119 +469,81 @@ export default function CartaPage() {
 						onClick={() => setSelectedProductId(null)}
 					/>
 
-					<article className="carta-fade-in relative z-10 max-h-screen w-full overflow-y-auto bg-surface sm:max-w-md sm:rounded-3xl">
-						<div className="relative aspect-square w-full bg-surface-muted">
-							{selectedProduct.imageUrl ? (
+					<article className="carta-fade-in relative z-10 max-h-[90dvh] w-full overflow-y-auto bg-surface md:max-w-sm">
+						{selectedProduct.imageUrl ? (
+							<div className="aspect-square w-full bg-surface-muted">
 								<img
 									src={selectedProduct.imageUrl}
 									alt={selectedProduct.name}
 									className="h-full w-full object-cover"
 								/>
-							) : (
-								<div className="flex h-full items-center justify-center text-4xl font-bold uppercase text-foreground-subtle">
-									{selectedProduct.name.slice(0, 2)}
-								</div>
-							)}
+							</div>
+						) : null}
 
-							<button
-								type="button"
-								className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-surface/80 text-foreground backdrop-blur-xl active:scale-press"
-								aria-label="Cerrar"
-								onClick={() => setSelectedProductId(null)}
-							>
-								<svg
-									className="h-4 w-4"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									strokeWidth="2"
-									aria-hidden
-								>
-									<path d="M6 6l12 12M18 6L6 18" />
-								</svg>
-							</button>
-
-							{visibleProducts.length > 1 ? (
-								<>
-									<button
-										type="button"
-										className="absolute left-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-accent-rose text-on-accent-rose active:scale-press"
-										aria-label="Anterior"
-										onClick={() => selectSibling(-1)}
-									>
-										<svg
-											className="h-4 w-4"
-											viewBox="0 0 24 24"
-											fill="none"
-											stroke="currentColor"
-											strokeWidth="2"
-											aria-hidden
-										>
-											<path d="M15 6l-6 6 6 6" />
-										</svg>
-									</button>
-									<button
-										type="button"
-										className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-accent-rose text-on-accent-rose active:scale-press"
-										aria-label="Siguiente"
-										onClick={() => selectSibling(1)}
-									>
-										<svg
-											className="h-4 w-4"
-											viewBox="0 0 24 24"
-											fill="none"
-											stroke="currentColor"
-											strokeWidth="2"
-											aria-hidden
-										>
-											<path d="M9 6l6 6-6 6" />
-										</svg>
-									</button>
-								</>
-							) : null}
-						</div>
-
-						<div className="space-y-3 p-5">
-							<p className="text-xs uppercase tracking-label text-foreground-subtle">
-								{selectedProduct.categoryName}
-							</p>
+						<div className="space-y-4 p-5 pb-safe">
 							<div className="flex items-start justify-between gap-4">
-								<div className="space-y-1">
-									{selectedProduct.featured ? (
-										<p className="font-display text-xs font-bold uppercase tracking-label text-accent-rose">
-											VIP
-										</p>
-									) : null}
-									<h2
-										id="producto-titulo"
-										className="text-base font-semibold uppercase tracking-label text-foreground"
-									>
-										{selectedProduct.name}
-									</h2>
-								</div>
-								<p className="shrink-0 text-lg font-semibold tabular-nums text-accent-rose">
+								<h2
+									id="producto-titulo"
+									className="text-xl font-medium tracking-tight text-foreground"
+								>
+									{selectedProduct.name}
+								</h2>
+								<p className="shrink-0 text-mobile-body tabular-nums text-foreground-muted">
 									{formatPrice(selectedProduct.price)}
 								</p>
 							</div>
 
 							{selectedProduct.description ? (
-								<p className="text-sm leading-relaxed text-foreground-muted">
+								<p className="text-mobile-body leading-mobile-body text-foreground-subtle">
 									{selectedProduct.description}
 								</p>
 							) : null}
 
 							{selectedProduct.tags.length > 0 ? (
-								<p className="text-xs uppercase tracking-label text-foreground-subtle">
+								<p className="text-xs text-foreground-muted">
 									{selectedProduct.tags.map((tag) => tag.name).join(' · ')}
 								</p>
 							) : null}
 
+							<div className="flex items-center justify-between pt-2">
+								{visibleProducts.length > 1 ? (
+									<div className="flex gap-4 text-sm text-foreground-muted">
+										<button
+											type="button"
+											className="transition hover:text-foreground"
+											aria-label="Anterior"
+											onClick={() => selectSibling(-1)}
+										>
+											Anterior
+										</button>
+										<button
+											type="button"
+											className="transition hover:text-foreground"
+											aria-label="Siguiente"
+											onClick={() => selectSibling(1)}
+										>
+											Siguiente
+										</button>
+									</div>
+								) : (
+									<span />
+								)}
+
+								<button
+									type="button"
+									className="text-sm text-foreground-muted transition hover:text-foreground"
+									onClick={() => setSelectedProductId(null)}
+								>
+									Cerrar
+								</button>
+							</div>
+
 							{businessPhone ? (
 								<a
 									href={`tel:${businessPhone.replace(/\s/g, '')}`}
-									className="font-display mt-2 flex w-full items-center justify-center rounded-full bg-accent-rose py-3.5 text-sm font-bold uppercase tracking-label text-on-accent-rose transition active:scale-press"
+									className="block border-t border-separator pt-4 text-center text-sm text-foreground transition hover:text-foreground-muted"
 								>
-									Pedir ahora
+									{businessPhone}
 								</a>
 							) : null}
 						</div>
