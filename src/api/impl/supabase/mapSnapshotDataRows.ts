@@ -5,35 +5,21 @@ import type {
 	SnapshotProduct,
 	SnapshotSettings,
 } from '../../contracts/snapshot.ts';
-import type { BusinessRow, SnapshotDataRow } from './types.ts';
+import type { SnapshotDataRow } from './types.ts';
 
 const DEFAULT_SETTINGS: SnapshotSettings = {
-	name: 'Mi Restaurante',
+	name: 'Carta',
 	logoImageId: null,
 	phone: '',
 	address: '',
-	hours: 'Lun–Dom: 12:00–23:00',
+	hours: '',
 	socialInstagram: '',
 	socialFacebook: '',
 	socialTwitter: '',
 };
 
-function mapBusinessSettings(business: BusinessRow): SnapshotSettings {
-	return {
-		name: business.name,
-		logoImageId: business.logo_image_id,
-		phone: business.phone,
-		address: business.address,
-		hours: business.hours,
-		socialInstagram: business.social_instagram,
-		socialFacebook: business.social_facebook,
-		socialTwitter: business.social_twitter,
-	};
-}
-
 export function mapSnapshotDataRows(
 	rows: SnapshotDataRow[],
-	business: BusinessRow | null,
 	images: SnapshotImage[],
 ): Snapshot {
 	if (rows.length === 0) {
@@ -41,8 +27,8 @@ export function mapSnapshotDataRows(
 			products: [],
 			categories: [],
 			images,
-			settings: business ? mapBusinessSettings(business) : DEFAULT_SETTINGS,
-			lastModified: business?.last_modified ?? new Date().toISOString(),
+			settings: DEFAULT_SETTINGS,
+			lastModified: new Date().toISOString(),
 		};
 	}
 
@@ -78,7 +64,7 @@ export function mapSnapshotDataRows(
 		categories,
 		products,
 		images,
-		settings: business ? mapBusinessSettings(business) : DEFAULT_SETTINGS,
-		lastModified: business?.last_modified ?? new Date().toISOString(),
+		settings: DEFAULT_SETTINGS,
+		lastModified: new Date().toISOString(),
 	};
 }
