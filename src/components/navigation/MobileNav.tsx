@@ -6,7 +6,7 @@ import {
 	type HashNavItem,
 } from './navItems.ts';
 
-function MenuIcon({ open }: { open: boolean }) {
+function NavToggleIcon({ open }: { open: boolean }) {
 	return (
 		<svg
 			className="h-5 w-5 text-foreground"
@@ -74,7 +74,7 @@ export function MobileNav() {
 				aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
 				onClick={() => setOpen((value) => !value)}
 			>
-				<MenuIcon open={open} />
+				<NavToggleIcon open={open} />
 			</button>
 
 			{open ? (
