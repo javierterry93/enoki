@@ -50,7 +50,7 @@ function categoryTabClass(isActive: boolean) {
 		.join(' ');
 }
 
-type GridProduct = CartaProduct & { categoryName: string };
+type ListProduct = CartaProduct & { categoryName: string };
 
 type CartaState =
 	| { status: 'loading' }
@@ -77,7 +77,7 @@ function ProductThumbnail({
 	product,
 	className = '',
 }: {
-	product: GridProduct;
+	product: ListProduct;
 	className?: string;
 }) {
 	if (product.imageUrl) {
@@ -104,11 +104,11 @@ function ProductThumbnail({
 	);
 }
 
-function MobileProductRow({
+function ProductRow({
 	product,
 	onSelect,
 }: {
-	product: GridProduct;
+	product: ListProduct;
 	onSelect: () => void;
 }) {
 	return (
@@ -138,48 +138,6 @@ function MobileProductRow({
 						</p>
 					) : null}
 				</div>
-			</button>
-		</li>
-	);
-}
-
-function DesktopProductCell({
-	product,
-	onSelect,
-}: {
-	product: GridProduct;
-	onSelect: () => void;
-}) {
-	return (
-		<li
-			className={[
-				'bg-surface',
-				product.featured
-					? 'col-span-2 row-span-2 aspect-square'
-					: 'aspect-square',
-			].join(' ')}
-		>
-			<button
-				type="button"
-				className="group relative block h-full w-full overflow-hidden"
-				onClick={onSelect}
-			>
-				<ProductThumbnail product={product} />
-
-				<span
-					className={[
-						'absolute inset-0 flex items-end bg-linear-to-t from-shadow/70 to-transparent p-3 transition',
-						product.featured
-							? 'opacity-100'
-							: 'opacity-0 group-hover:opacity-100',
-					].join(' ')}
-				>
-					<span className="w-full truncate text-left text-xs text-foreground-on-inverse">
-						{product.featured
-							? `${product.name} · ${formatPrice(product.price)}`
-							: formatPrice(product.price)}
-					</span>
-				</span>
 			</button>
 		</li>
 	);
@@ -250,7 +208,7 @@ export default function CartaPage() {
 	const categories =
 		cartaState.status === 'success' ? cartaState.data.categories : [];
 
-	const gridProducts = useMemo((): GridProduct[] => {
+	const listProducts = useMemo((): ListProduct[] => {
 		if (cartaState.status !== 'success') return [];
 
 		const source = activeCategoryId
@@ -266,7 +224,7 @@ export default function CartaPage() {
 	}, [cartaState, categories, activeCategoryId]);
 
 	const visibleProducts = useMemo(() => {
-		const filtered = gridProducts.filter((product) =>
+		const filtered = listProducts.filter((product) =>
 			productMatchesQuery(product, deferredQuery),
 		);
 
@@ -274,7 +232,7 @@ export default function CartaPage() {
 			if (a.featured === b.featured) return 0;
 			return a.featured ? -1 : 1;
 		});
-	}, [gridProducts, deferredQuery]);
+	}, [listProducts, deferredQuery]);
 
 	const selectedProduct = useMemo(
 		() =>
@@ -318,7 +276,7 @@ export default function CartaPage() {
 
 						<button
 							type="button"
-							className="shrink-0 text-foreground-muted transition hover:text-foreground"
+							className="shrink-0 text-foreground-muted"
 							aria-label={searchOpen ? 'Cerrar búsqueda' : 'Buscar'}
 							aria-expanded={searchOpen}
 							onClick={() => setSearchOpen((open) => !open)}
@@ -385,34 +343,16 @@ export default function CartaPage() {
 				</div>
 			</header>
 
-			<main className="container-carta md:max-w-none md:px-0">
+			<main className="container-carta">
 				{cartaState.status === 'loading' ? (
-					<>
-						<ul
-							className="md:hidden"
-							aria-busy="true"
-							aria-label="Cargando carta"
-						>
-							{Array.from({ length: 6 }, (_, index) => (
-								<li key={index} className="border-b border-separator py-5">
-									<div className="h-4 w-2/3 animate-pulse bg-surface-muted" />
-									<div className="mt-2 h-3 w-1/3 animate-pulse bg-surface-muted" />
-								</li>
-							))}
-						</ul>
-						<ul
-							className="hidden grid-cols-4 gap-px bg-separator md:grid lg:grid-cols-5 xl:grid-cols-6"
-							aria-busy="true"
-							aria-hidden
-						>
-							{Array.from({ length: 9 }, (_, index) => (
-								<li
-									key={index}
-									className="aspect-square animate-pulse bg-surface-muted"
-								/>
-							))}
-						</ul>
-					</>
+					<ul aria-busy="true" aria-label="Cargando carta">
+						{Array.from({ length: 6 }, (_, index) => (
+							<li key={index} className="border-b border-separator py-5">
+								<div className="h-4 w-2/3 animate-pulse bg-surface-muted" />
+								<div className="mt-2 h-3 w-1/3 animate-pulse bg-surface-muted" />
+							</li>
+						))}
+					</ul>
 				) : null}
 
 				{cartaState.status === 'error' ? (
@@ -426,27 +366,15 @@ export default function CartaPage() {
 
 				{cartaState.status === 'success' ? (
 					visibleProducts.length > 0 ? (
-						<>
-							<ul className="md:hidden">
-								{visibleProducts.map((product) => (
-									<MobileProductRow
-										key={product.id}
-										product={product}
-										onSelect={() => setSelectedProductId(product.id)}
-									/>
-								))}
-							</ul>
-
-							<ul className="hidden grid-flow-dense bg-separator md:grid md:grid-cols-4 md:gap-px lg:grid-cols-5 xl:grid-cols-6">
-								{visibleProducts.map((product) => (
-									<DesktopProductCell
-										key={product.id}
-										product={product}
-										onSelect={() => setSelectedProductId(product.id)}
-									/>
-								))}
-							</ul>
-						</>
+						<ul>
+							{visibleProducts.map((product) => (
+								<ProductRow
+									key={product.id}
+									product={product}
+									onSelect={() => setSelectedProductId(product.id)}
+								/>
+							))}
+						</ul>
 					) : (
 						<p className="py-20 text-center text-sm text-foreground-muted">
 							{query.trim() ? 'Sin resultados.' : 'No hay productos.'}
@@ -457,7 +385,7 @@ export default function CartaPage() {
 
 			{selectedProduct ? (
 				<div
-					className="fixed inset-0 z-50 flex items-end bg-shadow/40 md:items-center md:justify-center"
+					className="fixed inset-0 z-50 flex items-end bg-shadow/40"
 					role="dialog"
 					aria-modal="true"
 					aria-labelledby="producto-titulo"
@@ -469,7 +397,7 @@ export default function CartaPage() {
 						onClick={() => setSelectedProductId(null)}
 					/>
 
-					<article className="carta-fade-in relative z-10 max-h-[90dvh] w-full overflow-y-auto bg-surface md:max-w-sm">
+					<article className="carta-fade-in relative z-10 max-h-[90dvh] w-full overflow-y-auto bg-surface">
 						{selectedProduct.imageUrl ? (
 							<div className="aspect-square w-full bg-surface-muted">
 								<img
@@ -510,7 +438,6 @@ export default function CartaPage() {
 									<div className="flex gap-4 text-sm text-foreground-muted">
 										<button
 											type="button"
-											className="transition hover:text-foreground"
 											aria-label="Anterior"
 											onClick={() => selectSibling(-1)}
 										>
@@ -518,7 +445,6 @@ export default function CartaPage() {
 										</button>
 										<button
 											type="button"
-											className="transition hover:text-foreground"
 											aria-label="Siguiente"
 											onClick={() => selectSibling(1)}
 										>
@@ -531,7 +457,7 @@ export default function CartaPage() {
 
 								<button
 									type="button"
-									className="text-sm text-foreground-muted transition hover:text-foreground"
+									className="text-sm text-foreground-muted"
 									onClick={() => setSelectedProductId(null)}
 								>
 									Cerrar
@@ -541,7 +467,7 @@ export default function CartaPage() {
 							{businessPhone ? (
 								<a
 									href={`tel:${businessPhone.replace(/\s/g, '')}`}
-									className="block border-t border-separator pt-4 text-center text-sm text-foreground transition hover:text-foreground-muted"
+									className="block border-t border-separator pt-4 text-center text-sm text-foreground"
 								>
 									{businessPhone}
 								</a>
