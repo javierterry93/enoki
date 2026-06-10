@@ -2,28 +2,37 @@ import { slugify } from './slugify.ts';
 import type { Category, Data, Product } from './types.ts';
 import type { Snapshot, SnapshotImage } from './snapshot.ts';
 
-function resolveImageUrl(
+function resolveImageUrls(
 	imageId: string | null,
 	images: SnapshotImage[],
-): string | null {
-	if (!imageId) return null;
+): { imageUrl: string | null; imageFullUrl: string | null } {
+	if (!imageId) return { imageUrl: null, imageFullUrl: null };
 
 	const image = images.find((entry) => entry.id === imageId);
-	if (!image) return null;
+	if (!image) return { imageUrl: null, imageFullUrl: null };
 
-	return image.thumbnailUrl ?? image.url ?? null;
+	return {
+		imageUrl: image.thumbnailUrl ?? image.url ?? null,
+		imageFullUrl: image.url ?? image.thumbnailUrl ?? null,
+	};
 }
 
 function mapProduct(
 	product: Snapshot['products'][number],
 	images: SnapshotImage[],
 ): Product {
+	const { imageUrl, imageFullUrl } = resolveImageUrls(
+		product.imageId,
+		images,
+	);
+
 	return {
 		id: product.id,
 		name: product.name,
 		description: product.shortDescription || null,
 		price: product.price,
-		imageUrl: resolveImageUrl(product.imageId, images),
+		imageUrl,
+		imageFullUrl,
 		featured: false,
 		tags: [],
 	};

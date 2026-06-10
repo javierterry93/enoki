@@ -134,19 +134,19 @@ export default function CartaPage() {
 		products.find((product) => product.id === activeId) ?? null;
 
 	return (
-		<div className="container-carta min-h-screen bg-surface text-foreground">
-			<header className="py-10 text-center">
-				<h1 className="text-mobile-heading leading-mobile-heading font-medium text-foreground">
+		<div className="container-carta flex min-h-dvh flex-col text-foreground">
+			<header className="shrink-0 pt-12 pb-8 text-center">
+				<h1 className="text-mobile-heading leading-mobile-heading font-normal tracking-tight text-foreground">
 					{businessName}
 				</h1>
 				{businessHours ? (
-					<p className="mt-2 text-mobile-caption leading-mobile-caption text-foreground-muted">
+					<p className="mt-3 text-mobile-caption leading-mobile-caption text-foreground-muted">
 						{businessHours}
 					</p>
 				) : null}
 			</header>
 
-			<div className="pb-6">
+			<div className="shrink-0 pb-10">
 				<label htmlFor={searchId} className="sr-only">
 					Buscar
 				</label>
@@ -158,19 +158,19 @@ export default function CartaPage() {
 					placeholder="Buscar"
 					autoComplete="off"
 					spellCheck={false}
-					className="w-full border-0 border-b border-separator bg-transparent py-2 text-center text-mobile-body text-foreground outline-none placeholder:text-foreground-subtle focus:border-foreground"
+					className="w-full border-0 border-b border-separator bg-transparent py-2.5 text-center text-mobile-body text-foreground outline-none placeholder:text-foreground-subtle focus:border-foreground-muted"
 				/>
 			</div>
 
-			<main className="pb-16">
+			<main className="flex-1 pb-20">
 				{state.status === 'loading' ? (
-					<div className="space-y-8 py-4" aria-busy="true" aria-label="Cargando">
+					<div className="space-y-10 py-6" aria-busy="true" aria-label="Cargando">
 						{Array.from({ length: 4 }, (_, index) => (
 							<div
 								key={index}
 								className={[
-									'mx-auto h-3 animate-pulse bg-surface-muted',
-									index % 2 === 0 ? 'w-3/5' : 'w-2/3',
+									'mx-auto h-px animate-pulse bg-separator',
+									index % 2 === 0 ? 'w-2/5' : 'w-1/2',
 								].join(' ')}
 							/>
 						))}
@@ -189,11 +189,11 @@ export default function CartaPage() {
 				{state.status === 'success' ? (
 					sections.length > 0 ? (
 						sections.map((section) => (
-							<section key={section.category.id} className="mb-12 last:mb-0">
-								<h2 className="mb-5 text-center text-mobile-caption leading-mobile-caption text-foreground-muted">
+							<section key={section.category.id} className="mb-14 last:mb-0">
+								<h2 className="mb-6 text-center text-mobile-caption leading-mobile-caption tracking-widest text-foreground-muted uppercase">
 									{section.category.name}
 								</h2>
-								<ul className="space-y-6">
+								<ul className="space-y-10">
 									{section.products.map((product) => (
 										<li key={product.id}>
 											<button
@@ -201,16 +201,31 @@ export default function CartaPage() {
 												className="w-full text-left"
 												onClick={() => setActiveId(product.id)}
 											>
-												<div className="flex items-baseline justify-between gap-4">
-													<span className="text-mobile-title leading-mobile-title text-foreground">
+												{product.imageUrl ? (
+													<div className="mb-4 aspect-4/3 overflow-hidden rounded-carta bg-fill">
+														<img
+															src={product.imageUrl}
+															alt={product.name}
+															loading="lazy"
+															decoding="async"
+															className="h-full w-full object-cover"
+														/>
+													</div>
+												) : null}
+												<div className="flex items-baseline gap-2">
+													<span className="shrink-0 text-mobile-title leading-mobile-title text-foreground">
 														{product.name}
 													</span>
+													<span
+														aria-hidden
+														className="mb-1 min-w-3 flex-1 border-b border-dotted border-separator"
+													/>
 													<span className="shrink-0 text-mobile-body tabular-nums text-foreground-muted">
 														{formatPrice(product.price)}
 													</span>
 												</div>
 												{product.description ? (
-													<p className="mt-1 text-mobile-body leading-mobile-body text-foreground-subtle">
+													<p className="mt-1.5 max-w-prose text-mobile-body leading-mobile-body text-foreground-subtle">
 														{product.description}
 													</p>
 												) : null}
@@ -229,7 +244,7 @@ export default function CartaPage() {
 			</main>
 
 			{businessPhone ? (
-				<footer className="border-t border-separator py-8 text-center">
+				<footer className="shrink-0 pb-safe py-10 text-center">
 					<a
 						href={`tel:${businessPhone.replace(/\s/g, '')}`}
 						className="text-mobile-caption leading-mobile-caption text-foreground-muted"
@@ -241,13 +256,13 @@ export default function CartaPage() {
 
 			{activeProduct ? (
 				<div
-					className="fixed inset-0 z-50 flex justify-center bg-surface-muted"
+					className="fixed inset-0 z-50 flex flex-col bg-surface"
 					role="dialog"
 					aria-modal="true"
 					aria-labelledby="detalle-nombre"
 				>
-					<div className="container-carta flex h-full flex-col bg-surface">
-						<div className="flex justify-end py-5">
+					<div className="container-carta flex min-h-0 flex-1 flex-col">
+						<div className="flex shrink-0 justify-end pt-6">
 							<button
 								type="button"
 								className="text-mobile-caption leading-mobile-caption text-foreground-muted"
@@ -258,23 +273,31 @@ export default function CartaPage() {
 						</div>
 
 						<div className="flex-1 overflow-y-auto pb-safe">
-							{activeProduct.imageUrl ? (
-								<div className="mb-8 aspect-4/3 bg-surface-muted">
+							{activeProduct.imageFullUrl ?? activeProduct.imageUrl ? (
+								<div className="mb-10 aspect-4/3 overflow-hidden rounded-carta bg-fill">
 									<img
-										src={activeProduct.imageUrl}
+										src={
+											activeProduct.imageFullUrl ??
+											activeProduct.imageUrl ??
+											undefined
+										}
 										alt={activeProduct.name}
 										className="h-full w-full object-cover"
 									/>
 								</div>
 							) : null}
 
-							<div className="flex items-baseline justify-between gap-4">
+							<div className="flex items-baseline gap-2">
 								<h2
 									id="detalle-nombre"
-									className="text-mobile-title leading-mobile-title text-foreground"
+									className="shrink-0 text-mobile-title leading-mobile-title text-foreground"
 								>
 									{activeProduct.name}
 								</h2>
+								<span
+									aria-hidden
+									className="mb-1 min-w-3 flex-1 border-b border-dotted border-separator"
+								/>
 								<p className="shrink-0 text-mobile-body tabular-nums text-foreground-muted">
 									{formatPrice(activeProduct.price)}
 								</p>
@@ -287,7 +310,7 @@ export default function CartaPage() {
 							) : null}
 
 							{activeProduct.tags.length > 0 ? (
-								<p className="mt-6 text-mobile-caption leading-mobile-caption text-foreground-muted">
+								<p className="mt-8 text-center text-mobile-caption leading-mobile-caption tracking-widest text-foreground-muted uppercase">
 									{activeProduct.tags.map((tag) => tag.name).join(' · ')}
 								</p>
 							) : null}

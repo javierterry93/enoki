@@ -10,6 +10,7 @@ export type Product = {
 	description: string | null;
 	price: number;
 	imageUrl: string | null;
+	imageFullUrl: string | null;
 	featured: boolean;
 	tags: Tag[];
 };
